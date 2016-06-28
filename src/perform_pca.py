@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/nfs/goldstein/software/python2.7/bin/python2.7
 """
 Perform PCA, retain the top two axes of variation, and plot cases and controls
 to infer if the cases and controls are sufficiently matched to proceed with
@@ -10,6 +10,10 @@ import os
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import Imputer
+from copy import deepcopy
+import matplotlib as mpl
+mpl.use("pdf")
+import matplotlib.pyplot as plt
 
 AFFECTATION_COLUMN = 5
 
@@ -63,7 +67,6 @@ def PED_file(arg):
     genotypes_matrix = []
     with open(arg) as ped:
         first_sample = ped.next().split()
-        print(1)
         num_fields = len(first_sample)
         if num_fields < 8 or num_fields % 2:
             raise argparse.ArgumentTypeError(
@@ -74,7 +77,6 @@ def PED_file(arg):
         genotypes_matrix.append(create_genotypes_list(
             first_sample[6:], arg, num_variants, 1))
         for line_num, line in enumerate(ped):
-            print(line_num + 2)
             ped_fields = line.split()
             if len(ped_fields) < 8:
                 raise argparse.ArgumentTypeError(
@@ -83,11 +85,10 @@ def PED_file(arg):
             affectation_statuses.append(int(ped_fields[AFFECTATION_COLUMN]) - 1)
             genotypes_matrix.append(create_genotypes_list(
                 ped_fields[6:], arg, num_variants, line_num + 2))
-    return affectation_statuses, np.array(genotypes_matrix, dtype=np.int8)
+    return (np.array(affectation_statuses),
+            np.array(genotypes_matrix, dtype=np.int8), arg)
 
-def main(affectation_statuses, genotypes_matrix):
-    global a, g, genotypes, pca, pcs
-    a = affectation_statuses
+def main(affectation_statuses, genotypes_matrix, ped_path):
     # impute missing values
     g = Imputer(missing_values=-1, strategy="most_frequent", axis=0)
     g.fit(genotypes_matrix)
@@ -95,6 +96,18 @@ def main(affectation_statuses, genotypes_matrix):
     pca = PCA(n_components=2)
     del genotypes_matrix
     pcs = pca.fit_transform(genotypes)
+    fig = plt.figure()
+    ctrls = plt.scatter(pcs[affectation_statuses == 0, 0],
+                        pcs[affectation_statuses == 0, 1],
+                        c="b", s=4)
+    cases = plt.scatter(pcs[affectation_statues == 1, 0],
+                        pcs[affectation_statuses == 1, 1],
+                        c="y", s=4)
+    plt.title("PC1 vs. PC2 post-pruning")
+    plt.ylabel("PC2")
+    plt.xlabel("PC1")
+    plt.legend((ctrls, cases), ("Cases", "Controls"), scatterpoints=1)
+    fig.savefig("{ped_path}.pdf".format(ped_path=ped_path))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
