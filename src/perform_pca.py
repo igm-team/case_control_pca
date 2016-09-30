@@ -100,7 +100,7 @@ def main(affectation_statuses, genotypes_matrix, ped_path):
     ctrls = plt.scatter(pcs[affectation_statuses == 0, 0],
                         pcs[affectation_statuses == 0, 1],
                         c="b", s=4)
-    cases = plt.scatter(pcs[affectation_statues == 1, 0],
+    cases = plt.scatter(pcs[affectation_statuses == 1, 0],
                         pcs[affectation_statuses == 1, 1],
                         c="y", s=4)
     plt.title("PC1 vs. PC2 post-pruning")
